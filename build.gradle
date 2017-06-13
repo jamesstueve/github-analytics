@@ -10,8 +10,8 @@ buildscript {
 		mavenLocal()
 	}
 	dependencies {
-		classpath "org.springframework.boot:spring-boot-gradle-plugin:1.5.2.RELEASE"
-		classpath "org.springframework.cloud:spring-cloud-contract-gradle-plugin:1.0.4.RELEASE"
+		classpath "org.springframework.boot:spring-boot-gradle-plugin:1.5.3.RELEASE"
+		classpath "org.springframework.cloud:spring-cloud-contract-gradle-plugin:1.1.1.RELEASE"
 	}
 }
 
@@ -41,8 +41,24 @@ dependencyManagement {
 	}
 }
 
-contracts {
-	baseClassForTests = 'org.springframework.github.contract.BaseClass'
+if (gradle.startParameter.taskRequests.any { it.args.contains("apiCompatibility") }) {
+	contracts {
+		baseClassForTests = 'org.springframework.github.BaseClass'
+		basePackageForTests = 'com.example.contracttests'
+		contractsRepositoryUrl = getProp('REPO_WITH_JARS') ?: 'http://localhost:8081/artifactory/libs-release-local'
+		contractsPath = "/"
+		contractDependency {
+			groupId = project.group
+			artifactId = project.name
+			classifier = "stubs"
+			version = getProp("latestProductionVersion")
+		}
+	}
+} else {
+	contracts {
+		baseClassForTests = 'org.springframework.github.BaseClass'
+		basePackageForTests = 'com.example.contracttests'
+	}
 }
 
 dependencies {
@@ -50,6 +66,17 @@ dependencies {
 	compile ('org.springframework.cloud:spring-cloud-starter-eureka')
 	compile ('org.hibernate:hibernate-validator')
 	compile ('org.springframework.cloud:spring-cloud-starter-stream-rabbit')
+	compile ('org.springframework.boot:spring-boot-starter-actuator')
+	compile ('org.flywaydb:flyway-core')
+	compile ('org.springframework.boot:spring-boot-starter-data-jpa')
+	compile ('org.springframework.boot:spring-boot-starter-web')
+	compile ('com.h2database:h2')
+	compile ('mysql:mysql-connector-java')
+	// Prometheus
+	compile ("io.prometheus:simpleclient_hotspot:${prometheusVersion}")
+	compile ("io.prometheus:simpleclient_servlet:${prometheusVersion}")
+	compile ("io.prometheus:simpleclient:${prometheusVersion}")
+	compile ("io.prometheus:simpleclient_spring_boot:${prometheusVersion}")
 
 	testCompile ('org.springframework.cloud:spring-cloud-starter-contract-stub-runner')
 	testCompile ('org.springframework.cloud:spring-cloud-stream-test-support')
@@ -76,7 +103,7 @@ publishing {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '3.4.1'
+    gradleVersion = '3.5'
 }
 
 String getProp(String propName) {
